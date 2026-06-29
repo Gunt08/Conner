@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conner Ratchathewi — Unit Matrix Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a23;
+    --surface2: #1e2330;
+    --border: #2a3040;
+    --text: #e8eaf0;
+    --muted: #6b7490;
+    --accent: #4f8ef7;
+
+    --vacant: #2d5a3d;
+    --vacant-text: #6fcf8a;
+    --vacant-border: #3d7a52;
+
+    --transferred: #1a3a5c;
+    --transferred-text: #60a8f0;
+    --transferred-border: #2a5080;
+
+    --rent: #5c3a1a;
+    --rent-text: #f0a060;
+    --rent-border: #806030;
+
+    --booked: #3a2a5c;
+    --booked-text: #c060f0;
+    --booked-border: #602080;
+
+    --th-badge: #2a3a5c;
+    --th-text: #80b0f0;
+    --os-badge: #2a4a3a;
+    --os-text: #80d0a0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+  .header-left p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Summary KPI bar */
+  .kpi-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .kpi {
+    flex: 1;
+    background: var(--surface);
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .kpi.vacant .kpi-value { color: var(--vacant-text); }
+  .kpi.transferred .kpi-value { color: var(--transferred-text); }
+  .kpi.rent .kpi-value { color: var(--rent-text); }
+  .kpi.booked .kpi-value { color: var(--booked-text); }
+  .kpi.total .kpi-value { color: var(--text); }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    display: flex;
+  }
+  .progress-seg { height: 100%; transition: width 0.3s; }
+  .seg-transferred { background: var(--transferred-text); }
+  .seg-vacant { background: var(--vacant-text); }
+  .seg-rent { background: var(--rent-text); }
+  .seg-booked { background: var(--booked-text); }
+
+  /* Controls */
+  .controls {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .controls label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  .filter-group { display: flex; align-items: center; gap: 4px; }
+  .filter-btn {
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .filter-btn.active-vacant { background: var(--vacant); border-color: var(--vacant-border); color: var(--vacant-text); }
+  .filter-btn.active-transferred { background: var(--transferred); border-color: var(--transferred-border); color: var(--transferred-text); }
+  .filter-btn.active-rent { background: var(--rent); border-color: var(--rent-border); color: var(--rent-text); }
+
+  .search-box {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    width: 120px;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+
+  /* Matrix */
+  .matrix-container {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .floor-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    min-height: 68px;
+  }
+
+  .floor-label {
+    width: 80px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px;
+  }
+  .floor-num {
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text);
+  }
+  .floor-quota {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+  }
+  .quota-TH { background: var(--th-badge); color: var(--th-text); }
+  .quota-OS { background: var(--os-badge); color: var(--os-text); }
+
+  .floor-summary {
+    width: 72px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6px 8px;
+    gap: 2px;
+    font-size: 10px;
+  }
+  .fs-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .fs-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 3px;
+  }
+  .fs-label { color: var(--muted); flex: 1; }
+  .fs-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 11px;
+  }
+
+  .units-row {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-content: center;
+  }
+
+  /* Unit cell */
+  .unit-cell {
+    width: 66px;
+    height: 68px;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    transition: all 0.15s;
+    position: relative;
+    padding: 4px 3px;
+  }
+  .unit-cell:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    z-index: 10;
+  }
+  .unit-cell.dimmed { opacity: 0.25; }
+  .unit-cell.highlighted { ring: 2px solid white; }
+
+  .unit-cell.status-ห้องว่าง {
+    background: var(--vacant);
+    border-color: var(--vacant-border);
+  }
+  .unit-cell.status-โอน {
+    background: var(--transferred);
+    border-color: var(--transferred-border);
+  }
+  .unit-cell.status-ห้องเช่า {
+    background: var(--rent);
+    border-color: var(--rent-border);
+  }
+  .unit-cell.status-จอง {
+    background: var(--booked);
+    border-color: var(--booked-border);
+  }
+
+  .unit-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .unit-type {
+    font-size: 9px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .unit-furn {
+    font-size: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
+    max-width: 62px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 1px;
+    text-align: center;
+  }
+  .unit-furn.has-furn {
+    background: rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.72);
+  }
+  .unit-status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    position: absolute;
+    top: 5px; right: 5px;
+  }
+  .status-ห้องว่าง .unit-status-dot { background: var(--vacant-text); }
+  .status-โอน .unit-status-dot { background: var(--transferred-text); }
+  .status-ห้องเช่า .unit-status-dot { background: var(--rent-text); }
+  .status-จอง .unit-status-dot { background: var(--booked-text); }
+
+  /* Tooltip / popup */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .popup-overlay.open { display: flex; }
+  .popup {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    min-width: 320px;
+    max-width: 400px;
+    width: 90vw;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  }
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .popup-unit {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .popup-type {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .popup-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+  }
+  .popup-close:hover { background: var(--surface2); color: var(--text); }
+
+  .popup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .popup-field label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: 'IBM Plex Mono', monospace;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .popup-field span {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-ห้องว่าง { background: var(--vacant); color: var(--vacant-text); border: 1px solid var(--vacant-border); }
+  .badge-โอน { background: var(--transferred); color: var(--transferred-text); border: 1px solid var(--transferred-border); }
+  .badge-ห้องเช่า { background: var(--rent); color: var(--rent-text); border: 1px solid var(--rent-border); }
+  .badge-จอง { background: var(--booked); color: var(--booked-text); border: 1px solid var(--booked-border); }
+
+  .popup-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  .status-selector label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: 'IBM Plex Mono', monospace;
+    display: block;
+    margin-bottom: 10px;
+  }
+  .status-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .status-option {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 13px;
+    text-align: center;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .status-option:hover { opacity: 0.85; }
+  .status-option.selected { box-shadow: 0 0 0 2px white; }
+
+  .opt-ห้องว่าง { background: var(--vacant); border-color: var(--vacant-border); color: var(--vacant-text); }
+  .opt-โอน { background: var(--transferred); border-color: var(--transferred-border); color: var(--transferred-text); }
+  .opt-ห้องเช่า { background: var(--rent); border-color: var(--rent-border); color: var(--rent-text); }
+  .opt-จอง { background: var(--booked); border-color: var(--booked-border); color: var(--booked-text); }
+
+  .note-field {
+    margin-top: 12px;
+  }
+  .note-field label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: 'IBM Plex Mono', monospace;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .note-field textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    resize: vertical;
+    min-height: 60px;
+  }
+  .note-field textarea:focus { outline: none; border-color: var(--accent); }
+
+  .popup-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .btn-save {
+    flex: 1;
+    padding: 10px;
+    background: var(--accent);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.88; }
+  .btn-cancel {
+    padding: 10px 20px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-left: auto;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 18px;
+    color: var(--text);
+    font-size: 13px;
+    z-index: 9999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Floor section divider */
+  .zone-label {
+    padding: 6px 24px;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .zone-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  @media (max-width: 600px) {
+    .unit-cell { width: 52px; height: 46px; }
+    .floor-summary { display: none; }
+    .kpi-value { font-size: 22px; }
+    .controls { padding: 10px 12px; }
+    .matrix-container { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Conner Ratchathewi</h1>
+    <p>โครงการ 002 · อัพเดต 26/05/2569 · 294 ยูนิต · 33 ชั้น</p>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--vacant-text)"></div>ห้องว่าง</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--transferred-text)"></div>โอน</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--rent-text)"></div>ห้องเช่า</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--booked-text)"></div>จอง</div>
+  </div>
+</div>
+
+<div class="kpi-bar" id="kpiBar">
+  <div class="kpi total">
+    <div class="kpi-label">รวมทั้งหมด</div>
+    <div class="kpi-value" id="kpi-total">294</div>
+    <div class="kpi-sub">Units</div>
+  </div>
+  <div class="kpi transferred">
+    <div class="kpi-label">โอนแล้ว</div>
+    <div class="kpi-value" id="kpi-transferred">—</div>
+    <div class="kpi-sub" id="kpi-transferred-pct">—</div>
+  </div>
+  <div class="kpi vacant">
+    <div class="kpi-label">ห้องว่าง</div>
+    <div class="kpi-value" id="kpi-vacant">—</div>
+    <div class="kpi-sub" id="kpi-vacant-pct">—</div>
+  </div>
+  <div class="kpi rent">
+    <div class="kpi-label">ห้องเช่า</div>
+    <div class="kpi-value" id="kpi-rent">—</div>
+    <div class="kpi-sub" id="kpi-rent-pct">—</div>
+  </div>
+  <div class="kpi booked">
+    <div class="kpi-label">จอง</div>
+    <div class="kpi-value" id="kpi-booked">—</div>
+    <div class="kpi-sub" id="kpi-booked-pct">—</div>
+  </div>
+</div>
+<div class="progress-bar" id="progressBar">
+  <div class="progress-seg seg-transferred" id="prog-transferred"></div>
+  <div class="progress-seg seg-vacant" id="prog-vacant"></div>
+  <div class="progress-seg seg-rent" id="prog-rent"></div>
+  <div class="progress-seg seg-booked" id="prog-booked"></div>
+</div>
+
+<div class="controls">
+  <div class="filter-group">
+    <label>สถานะ:</label>
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">ทั้งหมด</button>
+    <button class="filter-btn" data-filter="ห้องว่าง" onclick="setFilter('ห้องว่าง', this)">ห้องว่าง</button>
+    <button class="filter-btn" data-filter="โอน" onclick="setFilter('โอน', this)">โอน</button>
+    <button class="filter-btn" data-filter="ห้องเช่า" onclick="setFilter('ห้องเช่า', this)">ห้องเช่า</button>
+    <button class="filter-btn" data-filter="จอง" onclick="setFilter('จอง', this)">จอง</button>
+  </div>
+  <div class="filter-group">
+    <label>Quota:</label>
+    <button class="filter-btn active" data-quota="all" onclick="setQuota('all', this)">ทั้งหมด</button>
+    <button class="filter-btn" data-quota="TH" onclick="setQuota('TH', this)">TH</button>
+    <button class="filter-btn" data-quota="OS" onclick="setQuota('OS', this)">OS</button>
+  </div>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+    <label>ค้นหาห้อง:</label>
+    <input type="text" class="search-box" placeholder="เช่น 2501" oninput="searchUnit(this.value)" id="searchInput">
+  </div>
+</div>
+
+<div class="matrix-container" id="matrix"></div>
+
+<!-- Popup -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopupOnOverlay(event)">
+  <div class="popup">
+    <div class="popup-header">
+      <div>
+        <div class="popup-unit" id="popup-unit-num">—</div>
+        <div class="popup-type" id="popup-unit-detail">—</div>
+      </div>
+      <button class="popup-close" onclick="closePopup()">✕</button>
+    </div>
+    <div class="popup-grid">
+      <div class="popup-field">
+        <label>สถานะปัจจุบัน</label>
+        <span id="popup-status-badge">—</span>
+      </div>
+      <div class="popup-field">
+        <label>Quota</label>
+        <span id="popup-quota">—</span>
+      </div>
+      <div class="popup-field">
+        <label>ประเภท</label>
+        <span id="popup-type">—</span>
+      </div>
+      <div class="popup-field">
+        <label>พื้นที่ (ตร.ม.)</label>
+        <span id="popup-area">—</span>
+      </div>
+      <div class="popup-field">
+        <label>เฟอร์นิเจอร์</label>
+        <span id="popup-furniture">—</span>
+      </div>
+      <div class="popup-field">
+        <label>ชั้น</label>
+        <span id="popup-floor">—</span>
+      </div>
+    </div>
+    <div class="popup-divider"></div>
+    <div class="status-selector">
+      <label>เปลี่ยนสถานะ</label>
+      <div class="status-options">
+        <div class="status-option opt-ห้องว่าง" onclick="selectStatus('ห้องว่าง')">ห้องว่าง</div>
+        <div class="status-option opt-โอน" onclick="selectStatus('โอน')">โอน</div>
+        <div class="status-option opt-ห้องเช่า" onclick="selectStatus('ห้องเช่า')">ห้องเช่า</div>
+        <div class="status-option opt-จอง" onclick="selectStatus('จอง')">จอง</div>
+      </div>
+    </div>
+    <div class="note-field">
+      <label>หมายเหตุ</label>
+      <textarea id="popup-note" placeholder="กรอกหมายเหตุเพิ่มเติม..."></textarea>
+    </div>
+    <div class="popup-actions">
+      <button class="btn-save" onclick="saveStatus()">บันทึกสถานะ</button>
+      <button class="btn-cancel" onclick="closePopup()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== DATA ====================
+const RAW_DATA = [{"quota":"TH","floor":38,"units":[{"unit":3801,"type":"PENT LOFT","area":177,"furniture":null,"status":"โอน"},{"unit":3802,"type":"PENT LOFT","area":177,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3803,"type":"PENT SM","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":1,"จอง":0,"โอน":2,"ห้องเช่า":0}},{"quota":"TH","floor":37,"units":[{"unit":3701,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":3702,"type":"GM","area":50,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3703,"type":"F","area":73,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3704,"type":"G","area":50,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3705,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3706,"type":"H","area":69,"furniture":"Fitted","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":4,"จอง":0,"โอน":2,"ห้องเช่า":0}},{"quota":"TH","floor":36,"units":[{"unit":3601,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":3602,"type":"GM","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":3603,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":3604,"type":"G","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":3605,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3606,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":4,"ห้องเช่า":0}},{"quota":"OS","floor":35,"units":[{"unit":3501,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":3502,"type":"GM","area":50,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":3503,"type":"F","area":73,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":3504,"type":"G","area":50,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":3505,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3506,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":3,"ห้องเช่า":0}},{"quota":"OS","floor":34,"units":[{"unit":3401,"type":"D1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":3402,"type":"GM","area":50,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3403,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":3404,"type":"G","area":50,"furniture":null,"status":"โอน"},{"unit":3405,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3406,"type":"H","area":69,"furniture":"Show Unit","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":3,"ห้องเช่า":0}},{"quota":"OS","floor":33,"units":[{"unit":3301,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":3302,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":3303,"type":"F","area":73,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":3304,"type":"G","area":50,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":3305,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3306,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":4,"ห้องเช่า":0}},{"quota":"OS","floor":32,"units":[{"unit":3201,"type":"D1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":3202,"type":"GM","area":50,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3203,"type":"F","area":73,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":3204,"type":"G","area":50,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":3205,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3206,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":4,"จอง":0,"โอน":2,"ห้องเช่า":0}},{"quota":"OS","floor":31,"units":[{"unit":3101,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":3102,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":3103,"type":"F","area":73,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":3104,"type":"G","area":50,"furniture":null,"status":"โอน"},{"unit":3105,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3106,"type":"H","area":69,"furniture":"Fully Fur.","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":4,"ห้องเช่า":0}},{"quota":"OS","floor":30,"units":[{"unit":3001,"type":"D1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":3002,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":3003,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":3004,"type":"G","area":50,"furniture":null,"status":"โอน"},{"unit":3005,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":3006,"type":"H","area":69,"furniture":"Fully Dec.","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":4,"ห้องเช่า":0}},{"quota":"OS","floor":29,"units":[{"unit":2901,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":2902,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":2903,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":2904,"type":"G","area":50,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":2905,"type":"D2","area":35.4,"furniture":null,"status":"โอน"},{"unit":2906,"type":"H","area":69,"furniture":"Furnished","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":4,"ห้องเช่า":0}},{"quota":"OS","floor":28,"units":[{"unit":2801,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":2802,"type":"GM","area":50,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":2803,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":2804,"type":"G","area":50,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":2805,"type":"D2","area":35.4,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2806,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":3,"ห้องเช่า":0}},{"quota":"TH","floor":27,"units":[{"unit":2701,"type":"D1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2702,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":2703,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":2704,"type":"G","area":50,"furniture":null,"status":"โอน"},{"unit":2705,"type":"D2","area":35.4,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2706,"type":"H","area":69,"furniture":"Show Unit","status":"โอน"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":4,"ห้องเช่า":0}},{"quota":"TH","floor":26,"units":[{"unit":2601,"type":"D1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2602,"type":"GM","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2603,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":2604,"type":"G","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2605,"type":"D2","area":35.4,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2606,"type":"H","area":69,"furniture":"Fitted","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":5,"จอง":0,"โอน":1,"ห้องเช่า":0}},{"quota":"TH","floor":25,"units":[{"unit":2501,"type":"D1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2502,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":2503,"type":"F","area":73,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2504,"type":"G","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2505,"type":"D2","area":35.4,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2506,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":4,"จอง":0,"โอน":2,"ห้องเช่า":0}},{"quota":"TH","floor":24,"units":[{"unit":2401,"type":"D1","area":34.9,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":2402,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":2403,"type":"F","area":73,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":2404,"type":"G","area":50,"furniture":null,"status":"โอน"},{"unit":2405,"type":"D2","area":35.4,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2406,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":3,"ห้องเช่า":0}},{"quota":"TH","floor":23,"units":[{"unit":2301,"type":"D1","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":2302,"type":"GM","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2303,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":2304,"type":"G","area":50,"furniture":null,"status":"โอน"},{"unit":2305,"type":"D2","area":35.4,"furniture":"Fully Fur.","status":"ห้องว่าง"},{"unit":2306,"type":"H","area":69,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":3,"ห้องเช่า":0}},{"quota":"TH","floor":22,"units":[{"unit":2201,"type":"D1","area":34.9,"furniture":null,"status":"โอน"},{"unit":2202,"type":"GM","area":50,"furniture":null,"status":"โอน"},{"unit":2203,"type":"F","area":73,"furniture":null,"status":"โอน"},{"unit":2204,"type":"G","area":50,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2205,"type":"D2","area":35.4,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2206,"type":"H","area":69,"furniture":"Fitted","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":3,"ห้องเช่า":0}},{"quota":"TH","floor":21,"units":[{"unit":2101,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":2102,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":2103,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":2104,"type":"A2M","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":2105,"type":"A2","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":2106,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":2107,"type":"B6","area":35.5,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":5,"ห้องเช่า":0}},{"quota":"TH","floor":18,"units":[{"unit":1801,"type":"B5","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":1802,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1803,"type":"A2M","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":1804,"type":"A2M","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":1805,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1806,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":1807,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1808,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1809,"type":"B3","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":1810,"type":"B4","area":34.8,"furniture":"Fitted","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":5,"จอง":0,"โอน":5,"ห้องเช่า":0}},{"quota":"OS","floor":17,"units":[{"unit":1701,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1702,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1703,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1704,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1705,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1706,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":1707,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1708,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1709,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1710,"type":"B4","area":34.8,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":0,"จอง":0,"โอน":10,"ห้องเช่า":0}},{"quota":"OS","floor":16,"units":[{"unit":1601,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1602,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1603,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1604,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1605,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1606,"type":"A1","area":33.7,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":1607,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1608,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1609,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1610,"type":"B4","area":34.8,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":1,"จอง":0,"โอน":9,"ห้องเช่า":0}},{"quota":"TH","floor":15,"units":[{"unit":1501,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1502,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1503,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1504,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1505,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1506,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":1507,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1508,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1509,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1510,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1511,"type":"C3","area":41.5,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":0,"จอง":0,"โอน":11,"ห้องเช่า":0}},{"quota":"TH","floor":14,"units":[{"unit":1401,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1402,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1403,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1404,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1405,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1406,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":1407,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1408,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1409,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1410,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1411,"type":"C1","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":1412,"type":"C2","area":42,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":1,"จอง":0,"โอน":11,"ห้องเช่า":0}},{"quota":"OS","floor":"12A","units":[{"unit":"12A01","type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A02","type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":"12A03","type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A04","type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A05","type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A06","type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":"12A07","type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A08","type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":"12A09","type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A10","type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":"12A11","type":"C1","area":34.9,"furniture":null,"status":"โอน"},{"unit":"12A12","type":"C2","area":42,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":0,"จอง":0,"โอน":12,"ห้องเช่า":0}},{"quota":"OS","floor":12,"units":[{"unit":1201,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1202,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1203,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1204,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1205,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1206,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":1207,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1208,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1209,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1210,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1211,"type":"C1","area":34.9,"furniture":null,"status":"โอน"},{"unit":1212,"type":"C4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1213,"type":"B4M","area":34.8,"furniture":null,"status":"โอน"},{"unit":1214,"type":"B3M","area":34.9,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":0,"จอง":0,"โอน":14,"ห้องเช่า":0}},{"quota":"TH","floor":11,"units":[{"unit":1101,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1102,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1103,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1104,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1105,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":1106,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":1107,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1108,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1109,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1110,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1111,"type":"C1","area":34.9,"furniture":null,"status":"โอน"},{"unit":1112,"type":"C4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1113,"type":"B4M","area":34.8,"furniture":null,"status":"โอน"},{"unit":1114,"type":"B3M","area":34.9,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":0,"จอง":0,"โอน":14,"ห้องเช่า":0}},{"quota":"TH","floor":10,"units":[{"unit":1001,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":1002,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":1003,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1004,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":1005,"type":"A2","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":1006,"type":"A1","area":33.7,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":1007,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":1008,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":1009,"type":"B3","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":1010,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1011,"type":"C1","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"},{"unit":1012,"type":"C4","area":34.8,"furniture":null,"status":"โอน"},{"unit":1013,"type":"B4M","area":34.8,"furniture":null,"status":"โอน"},{"unit":1014,"type":"B3M","area":34.9,"furniture":"Furnished","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":5,"จอง":0,"โอน":9,"ห้องเช่า":0}},{"quota":"OS","floor":9,"units":[{"unit":901,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":902,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":903,"type":"A2M","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":904,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":905,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":906,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":907,"type":"B3","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":908,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":909,"type":"B3","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":910,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":911,"type":"C1","area":34.9,"furniture":null,"status":"โอน"},{"unit":912,"type":"C4","area":34.8,"furniture":null,"status":"โอน"},{"unit":913,"type":"B4M","area":34.8,"furniture":null,"status":"โอน"},{"unit":914,"type":"B3M","area":34.9,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":3,"จอง":0,"โอน":11,"ห้องเช่า":0}},{"quota":"OS","floor":8,"units":[{"unit":801,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":802,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":803,"type":"A2M","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":804,"type":"A2M","area":34.9,"furniture":null,"status":"โอน"},{"unit":805,"type":"A2","area":34.9,"furniture":null,"status":"โอน"},{"unit":806,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":807,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":808,"type":"B1","area":30,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":809,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":810,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":811,"type":"C1","area":34.9,"furniture":null,"status":"โอน"},{"unit":812,"type":"C4","area":34.8,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":813,"type":"B4M","area":34.8,"furniture":null,"status":"โอน"},{"unit":814,"type":"B3M","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"}],"summary":{"ห้องว่าง":4,"จอง":0,"โอน":10,"ห้องเช่า":0}},{"quota":"OS","floor":7,"units":[{"unit":701,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":702,"type":"A1M","area":33.7,"furniture":null,"status":"ห้องเช่า"},{"unit":703,"type":"A2M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":704,"type":"A2M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":705,"type":"A2","area":34.9,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":706,"type":"A1","area":33.7,"furniture":null,"status":"ห้องเช่า"},{"unit":707,"type":"B3","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":708,"type":"B1","area":30,"furniture":null,"status":"ห้องเช่า"},{"unit":709,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":710,"type":"B4","area":34.8,"furniture":null,"status":"ห้องเช่า"},{"unit":711,"type":"C1","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":712,"type":"C4","area":34.8,"furniture":null,"status":"โอน"},{"unit":713,"type":"B4M","area":34.8,"furniture":null,"status":"ห้องเช่า"},{"unit":714,"type":"B3M","area":34.9,"furniture":null,"status":"โอน"}],"summary":{"ห้องว่าง":1,"จอง":0,"โอน":4,"ห้องเช่า":9}},{"quota":"TH","floor":6,"units":[{"unit":601,"type":"B5","area":34.9,"furniture":null,"status":"โอน"},{"unit":602,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":603,"type":"A2M","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":604,"type":"A2M","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":605,"type":"A2","area":34.9,"furniture":"Fully Dec.","status":"ห้องว่าง"},{"unit":606,"type":"A1","area":33.7,"furniture":null,"status":"โอน"},{"unit":607,"type":"B3","area":34.9,"furniture":"Show Unit","status":"ห้องว่าง"},{"unit":608,"type":"B1","area":30,"furniture":null,"status":"โอน"},{"unit":609,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":610,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":611,"type":"B4M","area":34.8,"furniture":null,"status":"โอน"},{"unit":612,"type":"B3M","area":34.9,"furniture":null,"status":"โอน"},{"unit":613,"type":"B2","area":34.5,"furniture":null,"status":"ห้องเช่า"}],"summary":{"ห้องว่าง":4,"จอง":0,"โอน":8,"ห้องเช่า":1}},{"quota":"TH","floor":5,"units":[{"unit":501,"type":"B5","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":502,"type":"A1M","area":33.7,"furniture":null,"status":"โอน"},{"unit":503,"type":"A2M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":504,"type":"A2M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":505,"type":"A2","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":506,"type":"A1","area":33.7,"furniture":null,"status":"ห้องเช่า"},{"unit":507,"type":"B3","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":508,"type":"B1","area":30,"furniture":null,"status":"ห้องเช่า"},{"unit":509,"type":"B3","area":34.9,"furniture":null,"status":"โอน"},{"unit":510,"type":"B4","area":34.8,"furniture":null,"status":"โอน"},{"unit":511,"type":"B4M","area":34.8,"furniture":null,"status":"ห้องเช่า"},{"unit":512,"type":"B3M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":513,"type":"B2","area":34.5,"furniture":null,"status":"ห้องเช่า"}],"summary":{"ห้องว่าง":0,"จอง":0,"โอน":3,"ห้องเช่า":10}},{"quota":"TH","floor":4,"units":[{"unit":401,"type":"B5","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":402,"type":"A1M","area":33.7,"furniture":null,"status":"ห้องเช่า"},{"unit":403,"type":"A2M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":404,"type":"A2M","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":405,"type":"A2","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":406,"type":"A1","area":33.7,"furniture":null,"status":"ห้องเช่า"},{"unit":407,"type":"B3","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":408,"type":"B1","area":30,"furniture":null,"status":"ห้องเช่า"},{"unit":409,"type":"B3","area":34.9,"furniture":null,"status":"ห้องเช่า"},{"unit":410,"type":"B4","area":34.8,"furniture":null,"status":"ห้องเช่า"},{"unit":411,"type":"B4M","area":34.8,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":412,"type":"B3M","area":34.9,"furniture":"Fitted","status":"ห้องว่าง"},{"unit":413,"type":"B2","area":34.5,"furniture":null,"status":"ห้องเช่า"}],"summary":{"ห้องว่าง":2,"จอง":0,"โอน":0,"ห้องเช่า":11}}];
+
+// State
+let unitData = {};
+let notes = {};
+let activeFilter = 'all';
+let activeQuota = 'all';
+let searchTerm = '';
+let selectedUnit = null;
+let pendingStatus = null;
+
+// Build flat unit map
+RAW_DATA.forEach(floor => {
+  floor.units.forEach(u => {
+    const key = String(u.unit);
+    unitData[key] = {
+      ...u,
+      floor: floor.floor,
+      quota: floor.quota
+    };
+  });
+});
+
+// Load saved state from localStorage if available
+function loadState() {
+  try {
+    const saved = localStorage.getItem('conner_unit_status');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(unitData, parsed.statuses || {});
+      Object.assign(notes, parsed.notes || {});
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('conner_unit_status', JSON.stringify({
+      statuses: Object.fromEntries(Object.entries(unitData).map(([k,v]) => [k, {status: v.status}])),
+      notes
+    }));
+  } catch(e) {}
+}
+
+loadState();
+
+// ==================== RENDER ====================
+function getStatusClass(s) {
+  const map = {'ห้องว่าง':'ห้องว่าง','โอน':'โอน','ห้องเช่า':'ห้องเช่า','จอง':'จอง'};
+  return map[s] || 'ห้องว่าง';
+}
+
+function renderMatrix() {
+  const container = document.getElementById('matrix');
+  container.innerHTML = '';
+
+  RAW_DATA.forEach(floor => {
+    const row = document.createElement('div');
+    row.className = 'floor-row';
+
+    // Floor label
+    const label = document.createElement('div');
+    label.className = 'floor-label';
+    label.innerHTML = `<span class="floor-num">${floor.floor}</span><span class="floor-quota quota-${floor.quota}">${floor.quota}</span>`;
+    row.appendChild(label);
+
+    // Units
+    const unitsDiv = document.createElement('div');
+    unitsDiv.className = 'units-row';
+
+    floor.units.forEach(u => {
+      const key = String(u.unit);
+      const current = unitData[key];
+      const status = current.status;
+
+      const cell = document.createElement('div');
+      cell.className = `unit-cell status-${getStatusClass(status)}`;
+      cell.setAttribute('data-unit', key);
+
+      // Apply filter visibility
+      const matchFilter = activeFilter === 'all' || status === activeFilter;
+      const matchQuota = activeQuota === 'all' || floor.quota === activeQuota;
+      const matchSearch = searchTerm === '' || String(u.unit).toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchFilter || !matchQuota || !matchSearch) {
+        cell.classList.add('dimmed');
+      }
+
+      const furn = current.furniture || u.furniture;
+      const furnShort = furn ? furn.replace('Show Unit','Show').replace('Fully Dec.','F.Dec').replace('Fully Fur.','F.Fur').replace('Furnished','Furn.').replace('Fitted','Fitted') : '';
+      cell.innerHTML = `
+        <div class="unit-status-dot"></div>
+        <div class="unit-num">${u.unit}</div>
+        <div class="unit-type">${u.type}</div>
+        <div class="unit-furn${furn ? ' has-furn' : ''}">${furnShort || '—'}</div>
+      `;
+      cell.onclick = () => openPopup(key);
+      unitsDiv.appendChild(cell);
+    });
+
+    row.appendChild(unitsDiv);
+
+    // Floor summary
+    const sum = document.createElement('div');
+    sum.className = 'floor-summary';
+    // Recount from live data
+    let counts = {'ห้องว่าง':0,'โอน':0,'ห้องเช่า':0,'จอง':0};
+    floor.units.forEach(u => { counts[unitData[String(u.unit)].status]++; });
+    sum.innerHTML = `
+      <div class="fs-item"><span class="fs-dot" style="background:var(--vacant-text)"></span><span class="fs-label">ว่าง</span><span class="fs-count" style="color:var(--vacant-text)">${counts['ห้องว่าง']}</span></div>
+      <div class="fs-item"><span class="fs-dot" style="background:var(--transferred-text)"></span><span class="fs-label">โอน</span><span class="fs-count" style="color:var(--transferred-text)">${counts['โอน']}</span></div>
+      <div class="fs-item"><span class="fs-dot" style="background:var(--rent-text)"></span><span class="fs-label">เช่า</span><span class="fs-count" style="color:var(--rent-text)">${counts['ห้องเช่า']}</span></div>
+      ${counts['จอง'] > 0 ? `<div class="fs-item"><span class="fs-dot" style="background:var(--booked-text)"></span><span class="fs-label">จอง</span><span class="fs-count" style="color:var(--booked-text)">${counts['จอง']}</span></div>` : ''}
+    `;
+    row.appendChild(sum);
+
+    container.appendChild(row);
+  });
+
+  updateKPI();
+}
+
+function updateKPI() {
+  const counts = {'ห้องว่าง':0,'โอน':0,'ห้องเช่า':0,'จอง':0};
+  Object.values(unitData).forEach(u => { if(counts[u.status] !== undefined) counts[u.status]++; });
+  const total = Object.keys(unitData).length;
+
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-transferred').textContent = counts['โอน'];
+  document.getElementById('kpi-transferred-pct').textContent = (counts['โอน']/total*100).toFixed(1)+'%';
+  document.getElementById('kpi-vacant').textContent = counts['ห้องว่าง'];
+  document.getElementById('kpi-vacant-pct').textContent = (counts['ห้องว่าง']/total*100).toFixed(1)+'%';
+  document.getElementById('kpi-rent').textContent = counts['ห้องเช่า'];
+  document.getElementById('kpi-rent-pct').textContent = (counts['ห้องเช่า']/total*100).toFixed(1)+'%';
+  document.getElementById('kpi-booked').textContent = counts['จอง'];
+  document.getElementById('kpi-booked-pct').textContent = (counts['จอง']/total*100).toFixed(1)+'%';
+
+  document.getElementById('prog-transferred').style.width = (counts['โอน']/total*100)+'%';
+  document.getElementById('prog-vacant').style.width = (counts['ห้องว่าง']/total*100)+'%';
+  document.getElementById('prog-rent').style.width = (counts['ห้องเช่า']/total*100)+'%';
+  document.getElementById('prog-booked').style.width = (counts['จอง']/total*100)+'%';
+}
+
+// ==================== FILTERS ====================
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active', 'active-vacant', 'active-transferred', 'active-rent'));
+  const cls = f === 'ห้องว่าง' ? 'active-vacant' : f === 'โอน' ? 'active-transferred' : f === 'ห้องเช่า' ? 'active-rent' : 'active';
+  btn.classList.add(cls);
+  renderMatrix();
+}
+
+function setQuota(q, btn) {
+  activeQuota = q;
+  document.querySelectorAll('[data-quota]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMatrix();
+}
+
+function searchUnit(val) {
+  searchTerm = val;
+  renderMatrix();
+}
+
+// ==================== POPUP ====================
+function openPopup(key) {
+  const u = unitData[key];
+  selectedUnit = key;
+  pendingStatus = u.status;
+
+  document.getElementById('popup-unit-num').textContent = 'ห้อง ' + u.unit;
+  document.getElementById('popup-unit-detail').textContent = `ชั้น ${u.floor} · ${u.quota} Quota`;
+  document.getElementById('popup-type').textContent = u.type;
+  document.getElementById('popup-area').textContent = u.area + ' ตร.ม.';
+  document.getElementById('popup-furniture').textContent = u.furniture || '—';
+  document.getElementById('popup-floor').textContent = u.floor;
+  document.getElementById('popup-quota').textContent = u.quota;
+  document.getElementById('popup-note').value = notes[key] || '';
+
+  const badge = document.getElementById('popup-status-badge');
+  badge.className = 'status-badge badge-' + u.status;
+  badge.textContent = u.status;
+
+  // Highlight selected status option
+  document.querySelectorAll('.status-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.textContent === u.status);
+  });
+
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+function closePopup() {
+  document.getElementById('popupOverlay').classList.remove('open');
+  selectedUnit = null;
+  pendingStatus = null;
+}
+
+function closePopupOnOverlay(e) {
+  if (e.target === document.getElementById('popupOverlay')) closePopup();
+}
+
+function selectStatus(s) {
+  pendingStatus = s;
+  document.querySelectorAll('.status-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.textContent === s);
+  });
+}
+
+function saveStatus() {
+  if (!selectedUnit || !pendingStatus) return;
+  const oldStatus = unitData[selectedUnit].status;
+  unitData[selectedUnit].status = pendingStatus;
+  notes[selectedUnit] = document.getElementById('popup-note').value;
+  saveState();
+  closePopup();
+  renderMatrix();
+  if (oldStatus !== pendingStatus) {
+    showToast(`ห้อง ${selectedUnit}: ${oldStatus} → ${pendingStatus}`);
+  } else {
+    showToast(`บันทึกข้อมูลห้อง ${selectedUnit} สำเร็จ`);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ==================== INIT ====================
+renderMatrix();
+</script>
+</body>
+</html>
